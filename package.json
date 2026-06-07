@@ -1,0 +1,11 @@
+{
+  "name": "universal-cert-api",
+  "version": "0.0.1",
+  "description": "API to fetch certificates automatically",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Prince",
+  "license": "ISC"
+}

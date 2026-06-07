@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title> pinSHA256 Tool </title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='g1' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%233b82f6'/%3E%3Cstop offset='100%25' stop-color='%238b5cf6'/%3E%3C/linearGradient%3E%3ClinearGradient id='g2' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2310b981'/%3E%3Cstop offset='100%25' stop-color='%23059669'/%3E%3C/linearGradient%3E%3Cfilter id='glow' x='-20%25' y='-20%25' width='140%25' height='140%25'%3E%3CfeGaussianBlur stdDeviation='2' result='blur'/%3E%3CfeComposite in='SourceGraphic' in2='blur' operator='over'/%3E%3C/filter%3E%3C/defs%3E%3Cpath d='M32 4 L10 14 L10 30 C10 48 20 58 32 62 C44 58 54 48 54 30 L54 14 Z' fill='rgba(59,130,246,0.1)' stroke='url(%23g1)' stroke-width='4' stroke-linejoin='round'/%3E%3Cpath d='M32 8 L14 16 L14 30 C14 45 22 53 32 57 C42 53 50 45 50 30 L50 16 Z' fill='none' stroke='url(%23g1)' stroke-width='2' opacity='0.5'/%3E%3Cpath d='M22 34 L28 40 L42 24' fill='none' stroke='url(%23g2)' stroke-width='5' stroke-linecap='round' stroke-linejoin='round' filter='url(%23glow)'/%3E%3C/svg%3E">
+    <style>
+        :root {
+            --bg-deep: #0f172a; --accent-blue: #3b82f6; --accent-gold: #f59e0b; --accent-green: #10b981;
+            --surface-glass: rgba(255, 255, 255, 0.05); --border-glass: rgba(255, 255, 255, 0.1);
+            --text-primary: #f8fafc; --text-secondary: #cbd5e1; --text-muted: #64748b;
+            --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: var(--font-sans); background: var(--bg-deep); color: var(--text-primary); 
+            height: 100dvh; overflow: hidden; display: flex; flex-direction: column; 
+            padding: 2vh 2vw; position: relative; 
+        }
+        
+        .bg-orbs { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+        .bg-orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.25; }
+        .bg-orb-1 { width: 45vw; height: 45vw; background: #3b82f6; top: -15%; left: -10%; animation: float 14s infinite alternate; }
+        .bg-orb-2 { width: 35vw; height: 35vw; background: #8b5cf6; bottom: -10%; right: -5%; animation: float 10s infinite alternate-reverse; }
+        @keyframes float { 0% { transform: translate(0, 0); } 100% { transform: translate(3%, 5%); } }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
+        .header h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; }
+        .header svg { width: 26px; height: 26px; }
+
+        .main-layout { display: flex; flex: 1; gap: 1rem; min-height: 0; }
+        
+        .panel { 
+            background: var(--surface-glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); 
+            border: 1px solid var(--border-glass); border-radius: 12px; 
+            display: flex; flex-direction: column; padding: 1.2rem; height: 100%;
+        }
+        
+        .panel-left { width: 32%; flex-shrink: 0; }
+        .panel-right { width: 68%; flex-shrink: 0; position: relative; }
+        
+        .section-title { 
+            font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); 
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; 
+            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+        }
+
+        .input-group { display: flex; gap: 8px; margin-bottom: 15px; height: 36px; flex-shrink: 0; }
+        .input-text { 
+            flex: 1; height: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); 
+            color: #fff; padding: 0 12px; border-radius: 8px; font-size: 0.8rem; 
+            outline: none; transition: 0.2s; min-width: 0; 
+        }
+        .input-text:focus { border-color: var(--accent-blue); }
+        .btn { 
+            height: 100%; padding: 0 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; 
+            cursor: pointer; border: none; transition: 0.2s; 
+            display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; 
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn-primary { background: var(--accent-blue); color: #fff; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-ghost { background: transparent; border: 1px solid var(--border-glass); color: var(--text-secondary); }
+        .btn-ghost:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+        .textarea-wrapper { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .pem-textarea { 
+            flex: 1; height: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); 
+            border-radius: 8px; padding: 12px; font-family: var(--font-mono); font-size: 0.7rem; 
+            color: var(--text-secondary); resize: none; outline: none; transition: 0.2s; 
+            white-space: pre; overflow: auto; 
+        }
+        .pem-textarea:focus { border-color: var(--accent-blue); color: #fff; }
+
+        .results-container { 
+            flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; 
+            opacity: 0; pointer-events: none; transition: 0.3s; overflow: hidden; 
+        }
+        .results-container.active { opacity: 1; pointer-events: auto; }
+
+        .hash-card { 
+            background: rgba(0,0,0,0.25); border-radius: 10px; padding: 10px 14px; 
+            display: flex; flex-direction: column; justify-content: center; gap: 6px; 
+            border-left: 4px solid var(--accent-blue); flex: 1; min-height: 0;
+        }
+        .hash-card.card-star { border-left-color: var(--accent-gold); background: linear-gradient(90deg, rgba(245,158,11,0.06) 0%, rgba(0,0,0,0.2) 100%); }
+        .card-title { font-size: 0.75rem; font-weight: 700; margin-bottom: 2px;}
+        .card-star .card-title { color: var(--accent-gold); }
+        .card-spki .card-title { color: var(--accent-blue); }
+
+        .hash-row { display: flex; flex-direction: column; gap: 3px; }
+        .hash-label { font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; }
+        .hash-val-box { display: flex; align-items: center; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); gap: 10px; }
+        .hash-val-box code { font-family: var(--font-mono); font-size: 0.75rem; color: #e2e8f0; flex: 1; word-break: break-all; white-space: pre-wrap; line-height: 1.2; }
+        
+        .copy-btn { 
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); color: var(--text-secondary); 
+            cursor: pointer; font-size: 0.65rem; padding: 4px 10px; border-radius: 6px; 
+            white-space: nowrap; transition: 0.2s; font-weight: 600;
+        }
+        .copy-btn:hover { background: rgba(255,255,255,0.1); color: #fff;}
+        .copy-btn.copied { background: rgba(16,185,129,0.2); border-color: rgba(16,185,129,0.5); color: #10b981; }
+
+        .info-grid { 
+            display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; flex: 1; min-height: 0;
+        }
+        .info-item { 
+            background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px; 
+            border: 1px solid rgba(255,255,255,0.03); 
+            display: flex; justify-content: space-between; align-items: center; gap: 8px; overflow: hidden; 
+        }
+        .span-3 { grid-column: span 3; } 
+        .span-2 { grid-column: span 2; } 
+        .span-6 { grid-column: span 6; } 
+
+        .lbl { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+        .val { font-size: 0.75rem; color: var(--text-primary); font-family: var(--font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+        
+        .serial-box { background: rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.08); align-items: flex-start;}
+        .serial-box .lbl { color: var(--accent-blue); padding-top: 2px;}
+        .serial-box .val { white-space: normal; word-break: break-all; text-align: right; line-height: 1.3; font-size: 0.8rem;}
+
+        .empty-state { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); pointer-events: none; transition: 0.3s; }
+        .results-container.active + .empty-state { opacity: 0; }
+        
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100%); background: #1e293b; color: #fff; padding: 10px 28px; border-radius: 30px; font-size: 0.8rem; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); z-index: 1000; transition: 0.3s; opacity: 0; }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        ::-webkit-scrollbar { width: 5px; height: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 5px; }
+        @media (max-width: 850px) { 
+            .main-layout { flex-direction: column; } 
+            .panel-left { width: 100%; flex: 0 0 45dvh; } 
+            .panel-right { width: 100%; flex: 1; } 
+            .span-3, .span-2 { grid-column: span 6; } 
+            .results-container { overflow-y: auto; display: block; }
+            .info-grid { display: flex; flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-orbs"><div class="bg-orb bg-orb-1"></div><div class="bg-orb bg-orb-2"></div></div>
+    <div id="toast" class="toast">Message</div>
+    <input type="file" id="fileInput" hidden accept=".pem,.crt,.cer,.der,.txt,*">
+
+    <div class="header">
+        <h1>
+            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient>
+                    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#059669"/></linearGradient>
+                </defs>
+                <path d="M32 4 L10 14 L10 30 C10 48 20 58 32 62 C44 58 54 48 54 30 L54 14 Z" fill="rgba(59,130,246,0.1)" stroke="url(#g1)" stroke-width="4" stroke-linejoin="round"/>
+                <path d="M32 8 L14 16 L14 30 C14 45 22 53 32 57 C42 53 50 45 50 30 L50 16 Z" fill="none" stroke="url(#g1)" stroke-width="2" opacity="0.5"/>
+                <path d="M22 34 L28 40 L42 24" fill="none" stroke="url(#g2)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Universal Cert & Pin Tool
+        </h1>
+    </div>
+
+    <div class="main-layout">
+        <div class="panel panel-left" id="dropZone">
+            <div class="section-title">📡 Domain / Node Fetch</div>
+            <div class="input-group">
+                <input type="text" id="networkInput" class="input-text" placeholder="URL / Domain / vless://..." autocomplete="off" />
+                <button class="btn btn-primary" id="btnFetch">Fetch</button>
+            </div>
+            <div class="section-title" style="margin-top: 4px;">
+                📝 Manual Input
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-ghost" id="btnUpload">File</button>
+                    <button class="btn btn-ghost" id="btnClear">Clear</button>
+                </div>
+            </div>
+            <div class="textarea-wrapper">
+                <textarea id="pemTextarea" class="pem-textarea" placeholder="Paste PEM cert here, or drop a file..."></textarea>
+            </div>
+        </div>
+
+        <div class="panel panel-right">
+            <div class="section-title" style="margin-bottom: 5px;">📊 Analysis Results</div>
+            <div class="results-container" id="resultsArea">
+                
+                <div class="hash-card card-star">
+                    <div class="card-title">⭐ Certificate Digest</div>
+                    <div class="hash-row">
+                        <span class="hash-label">Cert SHA256 (Hex)</span>
+                        <div class="hash-val-box"><code id="valCertHex">—</code><button class="copy-btn" onclick="copyText('valCertHex', this)">COPY</button></div>
+                    </div>
+                    <div class="hash-row">
+                        <span class="hash-label">Cert Fingerprint</span>
+                        <div class="hash-val-box"><code id="valCertFinger">—</code><button class="copy-btn" onclick="copyText('valCertFinger', this)">COPY</button></div>
+                    </div>
+                </div>
+
+                <div class="hash-card card-spki">
+                    <div class="card-title">🔑 Public Key Pin (SPKI)</div>
+                    <div class="hash-row">
+                        <span class="hash-label">pin-sha256 (Base64)</span>
+                        <div class="hash-val-box"><code id="valPin">—</code><button class="copy-btn" onclick="copyText('valPin', this)">COPY</button></div>
+                    </div>
+                    <div class="hash-row">
+                        <span class="hash-label">SPKI SHA256 (Hex)</span>
+                        <div class="hash-val-box"><code id="valSpkiHex">—</code><button class="copy-btn" onclick="copyText('valSpkiHex', this)">COPY</button></div>
+                    </div>
+                    <div class="hash-row">
+                        <span class="hash-label">SPKI Fingerprint</span>
+                        <div class="hash-val-box"><code id="valSpkiFinger">—</code><button class="copy-btn" onclick="copyText('valSpkiFinger', this)">COPY</button></div>
+                    </div>
+                </div>
+                
+                <div class="info-grid">
+                    <div class="info-item span-3"><span class="lbl">Subject</span><span class="val" id="iSubj">—</span></div>
+                    <div class="info-item span-3"><span class="lbl">Issuer</span><span class="val" id="iIss">—</span></div>
+                    
+                    <div class="info-item span-3"><span class="lbl">Valid From</span><span class="val" id="iFrom">—</span></div>
+                    <div class="info-item span-3"><span class="lbl">Valid To</span><span class="val" id="iTo">—</span></div>
+                    
+                    <div class="info-item span-2"><span class="lbl">Sig Alg</span><span class="val" id="iSig">—</span></div>
+                    <div class="info-item span-2"><span class="lbl">Pub Key</span><span class="val" id="iPub">—</span></div>
+                    <div class="info-item span-2"><span class="lbl">Version</span><span class="val" id="iVer">—</span></div>
+                    
+                    <div class="info-item span-6 serial-box">
+                        <span class="lbl">Serial Number</span>
+                        <span class="val" id="iSn">—</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" width="50" height="50" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.3; margin-bottom:15px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                <p>Waiting for input...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function extractTarget(input) {
+            let str = input.trim();
+            if (!str) return "";
+            if (str.startsWith("vmess://")) {
+                try { let j = JSON.parse(atob(str.slice(8))); str = j.sni || j.host || j.add || str; } catch(e) {}
+            }
+            try {
+                let u = new URL(str.includes("://") ? str : "https://" + str);
+                let sni = u.searchParams.get("sni") || u.searchParams.get("host") || u.searchParams.get("peer");
+                if (sni) return sni;
+                return u.hostname + (u.port ? ':' + u.port : '');
+            } catch(e) {
+                let m = str.match(/([a-zA-Z0-9.-]+(:[0-9]+)?)/);
+                return m ? m[1] : str;
+            }
+        }
+
+        const OID_MAP = {
+            '1.2.840.113549.1.1.1': 'RSA', '1.2.840.113549.1.1.5': 'SHA1-RSA', '1.2.840.113549.1.1.11': 'SHA256-RSA', 
+            '1.2.840.113549.1.1.12': 'SHA384-RSA', '1.2.840.10045.2.1': 'EC', '1.2.840.10045.4.3.2': 'ECDSA-SHA256', 
+            '1.2.840.10045.4.3.3': 'ECDSA-SHA384', '1.3.101.112': 'Ed25519', '2.5.4.3': 'CN', '2.5.4.10': 'O', 
+            '2.5.4.11': 'OU', '2.5.4.6': 'C', '2.5.4.7': 'L', '2.5.4.8': 'ST'
+        };
+
+        class ASN1ParseResult { constructor() { this.children = []; } }
+        function parseASN1(der, offset = 0, depth = 0) {
+            if (depth > 40) throw new Error('Nesting too deep');
+            let res = new ASN1ParseResult(); res.offset = offset; let startOffset = offset; let tagByte = der[offset++];
+            res.tagClass = (tagByte >> 6) & 0x03; res.constructed = ((tagByte >> 5) & 0x01) === 1; res.tagNumber = tagByte & 0x1f;
+            let length = der[offset++];
+            if (length & 0x80) { let numLenBytes = length & 0x7f; length = 0; for (let i = 0; i < numLenBytes; i++) length = (length << 8) | der[offset++]; }
+            res.length = length; res.totalLength = (offset - startOffset) + length; res.rawValue = der.slice(offset, offset + length);
+            if (res.constructed) { let childEnd = offset + length; while (offset < childEnd) { let child = parseASN1(der, offset, depth + 1); res.children.push(child); offset += child.totalLength; } }
+            return res;
+        }
+
+        function readOID(bytes) { if (!bytes || bytes.length === 0) return ''; let parts = [Math.floor(bytes[0] / 40), bytes[0] % 40], i = 1; while (i < bytes.length) { let v = 0, b; do { b = bytes[i++]; v = (v << 7) | (b & 0x7f); } while (b & 0x80); parts.push(v); } return parts.join('.'); }
+        function readStringValue(el) { return el.rawValue ? new TextDecoder('utf-8', { fatal: false }).decode(el.rawValue) : ''; }
+        function bytesToHex(bytes, sep = '') { return Array.from(bytes).map(x => x.toString(16).padStart(2, '0')).join(sep); }
+
+        function parseName(nameSeq) {
+            if (!nameSeq || !nameSeq.children) return ''; let rdns = [];
+            for (let rdnSet of nameSeq.children) { if (rdnSet.tagNumber === 17 && rdnSet.constructed) { for (let atav of rdnSet.children) { if (atav.tagNumber === 16 && atav.constructed && atav.children.length >= 2) { let oid = readOID(atav.children[0].rawValue); rdns.push((OID_MAP[oid] || oid) + '=' + readStringValue(atav.children[1])); } } } }
+            return rdns.join(', ');
+        }
+        function parseTime(el) {
+            if (!el || !el.rawValue) return ''; let str = new TextDecoder('ascii').decode(el.rawValue);
+            if (el.tagNumber === 23) { let m = str.match(/^(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/); if (m) { let y = parseInt(m[1]) >= 50 ? 1900 + parseInt(m[1]) : 2000 + parseInt(m[1]); return `${y}-${m[2]}-${m[3]} ${m[4]}:${m[5]}`; } }
+            if (el.tagNumber === 24) { let m = str.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/); if (m) return `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}`; }
+            return str;
+        }
+
+        function pemToDer(pemText) {
+            let certMatch = pemText.match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/i);
+            if (!certMatch) throw new Error("No PEM found.");
+            let b64 = certMatch[0].replace(/-----BEGIN CERTIFICATE-----/i, '').replace(/-----END CERTIFICATE-----/i, '').replace(/[\s\r\n]+/g, '');
+            let binaryStr = atob(b64); let der = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) der[i] = binaryStr.charCodeAt(i); return der;
+        }
+
+        function parseCertificate(der) {
+            let seq = parseASN1(der), tbs = seq.children[0], ch = tbs.children, idx = 0, ver = 1;
+            if (ch[idx].tagClass === 2) { if (ch[idx].children.length > 0) ver = (ch[idx].children[0].rawValue[0] || 0) + 1; idx++; }
+            let sn = bytesToHex(ch[idx++].rawValue, ':').toUpperCase();
+            let sigOid = ch[idx].children && ch[idx].children.length > 0 ? readOID(ch[idx].children[0].rawValue) : ''; idx++;
+            let issuer = parseName(ch[idx++]); let valSeq = ch[idx++];
+            let notBefore = valSeq.children && valSeq.children.length > 0 ? parseTime(valSeq.children[0]) : '';
+            let notAfter = valSeq.children && valSeq.children.length > 1 ? parseTime(valSeq.children[1]) : '';
+            let subject = parseName(ch[idx++]); let spki = ch[idx];
+            let pubOid = spki && spki.children.length > 0 && spki.children[0].children.length > 0 ? readOID(spki.children[0].children[0].rawValue) : '';
+            return { ver, sn, sigOid, issuer, notBefore, notAfter, subject, pubOid, spkiDer: der.slice(spki.offset, spki.offset + spki.totalLength) };
+        }
+
+        async function computeHashes(der) {
+            let info = parseCertificate(der);
+            let sh = new Uint8Array(await crypto.subtle.digest('SHA-256', info.spkiDer));
+            let ch = new Uint8Array(await crypto.subtle.digest('SHA-256', der));
+            return { info, pin: btoa(String.fromCharCode(...sh)), spkiHex: bytesToHex(sh, '').toLowerCase(), spkiFinger: bytesToHex(sh, ':').toUpperCase(), certHex: bytesToHex(ch, '').toLowerCase(), certFinger: bytesToHex(ch, ':').toUpperCase() };
+        }
+
+        const ui = { ta: document.getElementById('pemTextarea'), netIn: document.getElementById('networkInput'), resArea: document.getElementById('resultsArea') };
+        function showToast(msg, err = false) { let t = document.getElementById('toast'); t.textContent = msg; t.style.background = err ? '#dc2626' : '#10b981'; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
+
+        async function processData(data) {
+            try {
+                let der = typeof data === 'string' ? pemToDer(data) : data;
+                let r = await computeHashes(der); let i = r.info;
+                
+                document.getElementById('valCertHex').textContent = r.certHex; document.getElementById('valCertFinger').textContent = r.certFinger;
+                document.getElementById('valPin').textContent = r.pin; document.getElementById('valSpkiHex').textContent = r.spkiHex; document.getElementById('valSpkiFinger').textContent = r.spkiFinger;
+                
+                document.getElementById('iSubj').textContent = i.subject || 'N/A'; document.getElementById('iSubj').title = i.subject || '';
+                document.getElementById('iIss').textContent = i.issuer || 'N/A'; document.getElementById('iIss').title = i.issuer || '';
+                document.getElementById('iFrom').textContent = i.notBefore || 'N/A';
+                document.getElementById('iTo').textContent = i.notAfter || 'N/A';
+                document.getElementById('iSig').textContent = OID_MAP[i.sigOid] || i.sigOid || 'Unknown';
+                document.getElementById('iPub').textContent = OID_MAP[i.pubOid] || i.pubOid || 'Unknown';
+                document.getElementById('iVer').textContent = `v${i.ver}`;
+                document.getElementById('iSn').textContent = i.sn || 'N/A';
+
+                ui.resArea.classList.add('active');
+            } catch (e) { showToast("Invalid Certificate Data", true); ui.resArea.classList.remove('active'); }
+        }
+
+        let debounceTimer; 
+        ui.ta.addEventListener('input', e => { clearTimeout(debounceTimer); if (!e.target.value.trim()) return ui.resArea.classList.remove('active'); debounceTimer = setTimeout(() => processData(e.target.value), 400); });
+        document.getElementById('btnClear').onclick = () => { ui.ta.value = ''; ui.netIn.value = ''; ui.resArea.classList.remove('active'); };
+        
+        document.getElementById('btnFetch').onclick = async () => {
+            let rawInput = ui.netIn.value.trim(); 
+            if (!rawInput) return showToast('Enter URL, Node link, or Domain', true); 
+            
+            let target = extractTarget(rawInput);
+            if (!target) return showToast('Could not extract valid domain', true);
+            
+            document.getElementById('btnFetch').textContent = '...';
+            try {
+                let res = await fetch('/fetch?target=' + encodeURIComponent(target));
+                let data = await res.json();
+                if (data.pem) { 
+                    ui.ta.value = data.pem; processData(data.pem); 
+                    showToast(`Fetched: ${target} [${data.proto || 'TCP'}]`); 
+                } else { throw new Error(data.error || "Fetch failed"); }
+            } catch (e) { showToast(`Failed to fetch cert for ${target}`, true); } 
+            finally { document.getElementById('btnFetch').textContent = 'Fetch'; }
+        };
+
+        document.getElementById('btnUpload').onclick = () => document.getElementById('fileInput').click();
+        document.getElementById('fileInput').onchange = e => { let f = e.target.files[0]; if (!f) return; let reader = new FileReader(); reader.onload = ev => { let buf = new Uint8Array(ev.target.result); if (buf[0] === 0x30) processData(buf); else { ui.ta.value = new TextDecoder().decode(buf); processData(ui.ta.value); } }; reader.readAsArrayBuffer(f);  e.target.value = ''; };
+        const dz = document.getElementById('dropZone'); dz.ondragover = e => { e.preventDefault(); dz.style.borderColor = 'var(--accent-blue)'; }; dz.ondragleave = e => { dz.style.borderColor = 'var(--border-glass)'; }; dz.ondrop = e => { e.preventDefault(); dz.style.borderColor = 'var(--border-glass)'; let f = e.dataTransfer.files[0]; if (f) { let reader = new FileReader(); reader.onload = ev => { ui.ta.value = new TextDecoder().decode(ev.target.result); processData(ui.ta.value); }; reader.readAsArrayBuffer(f); } };
+        window.copyText = async (id, btn) => { let text = document.getElementById(id).textContent; if (text === '—') return; await navigator.clipboard.writeText(text); let originalText = btn.textContent; btn.textContent = 'OK'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = originalText; btn.classList.remove('copied'); }, 1500); };
+    </script>
+</body>
+</html>
