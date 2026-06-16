@@ -8,6 +8,8 @@ COPY package.json ./
 COPY index.js ./
 COPY index.html ./
 
-EXPOSE 3000
+ARG PORT=3000
+EXPOSE ${PORT}
 
+ENV PORT=${PORT}
 CMD ["npm", "start"]
