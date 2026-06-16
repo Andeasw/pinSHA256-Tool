@@ -1,6 +1,6 @@
 FROM node:22-alpine
 
-RUN apk update && apk add --no-cache openssl
+RUN apk add --no-cache openssl
 
 WORKDIR /app
 
@@ -8,8 +8,7 @@ COPY package.json ./
 COPY index.js ./
 COPY index.html ./
 
-ARG PORT=3000
-EXPOSE ${PORT}
+ENV PORT=3000
+EXPOSE 3000
 
-ENV PORT=${PORT}
 CMD ["npm", "start"]
