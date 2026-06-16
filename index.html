@@ -238,6 +238,10 @@
     </div>
 
     <script>
+        // ===== 后端设置 =====
+        // 留空 ''      -> 本地处理：用页面同源的后端（Docker 部署，页面由 index.js 提供，走相对路径）
+        // 填后端地址   -> 使用外部后端，例如 'https://your-backend.example.com'
+        // 注意：页面是 https 打开时，外部后端也必须是 https，否则浏览器拦截（混合内容）。
         const BACKEND_URL = '';
 
         function extractTarget(input) {
@@ -360,11 +364,18 @@
                 let base = BACKEND_URL ? BACKEND_URL.replace(/\/+$/, '') : '';
                 let res = await fetch(base + '/fetch?target=' + encodeURIComponent(target));
                 let data = await res.json();
-                if (data.pem) { 
-                    ui.ta.value = data.pem; processData(data.pem); 
-                    showToast(`Fetched: ${target} [${data.proto || 'TCP'}]`); 
+                if (data.pem) {
+                    ui.ta.value = data.pem; processData(data.pem);
+                    showToast(`Fetched: ${target} [${data.proto || 'TCP'}]`);
                 } else { throw new Error(data.error || "Fetch failed"); }
-            } catch (e) { showToast(`Failed to fetch cert for ${target}`, true); } 
+            } catch (e) {
+                if (e instanceof TypeError) {
+                    console.error('Backend unreachable:', e, 'BACKEND_URL=', BACKEND_URL || '(same-origin)');
+                    showToast(BACKEND_URL ? `Cannot reach backend ${BACKEND_URL}` : `Backend unreachable`, true);
+                } else {
+                    showToast(`Failed to fetch cert for ${target}`, true);
+                }
+            }
             finally { document.getElementById('btnFetch').textContent = 'Fetch'; }
         };
 
